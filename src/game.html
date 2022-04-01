@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Periodic.io</title>
+        <script src="http://code.jquery.com/jquery-latest.js"></script>
+        <style>
+            .container {
+                display: flex;
+                
+            }
+
+            .container div {
+                margin-right: 10px;
+            }
+            input {
+                width: 400px;
+            }
+            p {
+                margin: 3px;
+            }
+
+            #arena {
+                border: solid black 3px;
+                width: 500px;
+                height: 500px;
+            }
+
+            #msg-box {
+                border: solid black;
+                width: 200px;
+                height: 500px;
+                margin-bottom: 20px;
+            }
+
+            .cell {
+                position: relative;
+                width: 10px;
+                height: 10px;
+                top: 250px;
+                left: 250px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Periodic.io</h1>
+        <div class="container">
+            <div id="arena">
+
+            </div>
+
+            <div id="msg-box">
+            </div>
+            
+        </div>
+        <div>
+            <input type="text" value="">
+            <button id="send">Send</button>
+        </div>
+
+        <script>
+            const input = document.querySelector('input');
+            const sendButton = document.querySelector('#send');
+            const arena = document.querySelector('#arena');
+            const arenaEl = $('#arena');
+            const msgBox = document.querySelector('#msg-box');
+ 
+            let cells = { };
+
+            let meCellId = 0;
+
+            let userId = prompt("Please Enter your nickname");
+
+            while (userId.trim().length == 0) {
+                userId = prompt("Please Enter a valid nickname");
+            }
+
+            const socket = new WebSocket('ws://127.0.0.1:5000');
+            const color = [Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255)];
+
+            socket.onopen = (e) => {
+                let packet = new ArrayBuffer(4 + userId.length);
+                let view = new Uint8Array(packet);
+                for(let i = 0; i < 3; i++) {
+                    view[i + 1] = color[i];
+                }
+                for(let i = 0; i < userId.length; i++) {
+                    view[i + 4] = userId.charCodeAt(i);
+                }
+                socket.send(packet);
+            }
+
+            function sendPos(x, y) {
+                let packet = new ArrayBuffer(6);
+                let view = new Uint8Array(packet);
+                view[0] = 3;
+                view[1] = meCellId;
+                view = new Uint16Array(packet);
+                view[1] = x;
+                view[2] = y;
+                socket.send(packet);
+            }
+
+            function moveCell(packet) {
+                let info = new Uint8Array(packet);
+                let view = new Uint16Array(packet.slice(2));
+                const cellId = info[1];
+                const targetCell = cells[cellId];
+                targetCell.style.left = view[0] + 'px';
+                targetCell.style.top = view[1] + 'px';
+            }
+
+            function trackMeCell(me) {
+                arena.onmousemove = (e) => {
+                    let x = e.clientX - arenaEl.offset().left;
+                    let y = e.clientY - arenaEl.offset().top;
+
+                    x = Math.floor(Math.max(0, Math.min(x, 490)));
+                    y = Math.floor(Math.max(0, Math.min(y, 490)));
+
+                    me.style.left = x + 'px';
+                    me.style.top = y + 'px';
+
+                    sendPos(x, y);
+                }
+            }
+
+            function instantiateCell(packet) {
+                const info = new Uint8Array(packet);
+                const isMe = info[0] == 2;
+
+                const cellId = info[1];
+
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.style.top = '250px';
+                cell.style.left = '250px';
+                cell.style.backgroundColor = `rgb(${info[2]}, ${info[3]}, ${info[4]})`
+
+                const name = String.fromCharCode(...info.slice(5));
+
+                const nick = document.createElement('p');
+                nick.innerText = name;
+                cell.appendChild(nick);
+
+                if(isMe) {
+                    cell.id = 'me';
+                    meCellId = cellId;
+                    trackMeCell(cell);
+                }
+
+                arena.appendChild(cell);
+                cells[cellId] = cell;
+            }
+
+            socket.onmessage = async (e) => {
+                let packet = await e.data.arrayBuffer();
+                const view = new Uint8Array(packet);
+                switch(view[0]) {
+                    case 1:
+                        instantiateCell(packet);
+                        break;
+                    case 2:
+                        instantiateCell(packet);
+                        break;
+                    case 4:
+                        moveCell(packet);
+                        break;
+                    case 6:
+                        const msg = String.fromCharCode(...view.slice(2));
+                        const line = document.createElement('p');
+                        const name = cells[view[1]].firstElementChild.innerText;
+                        line.innerText = `${name}: ${msg}`;
+                        msgBox.appendChild(line);
+                        break;
+                }
+            }
+            
+            sendButton.onclick = () => {
+                let packet = new ArrayBuffer(2 + input.value.length);
+                let view = new Uint8Array(packet);
+                view[0] = 5;
+                view[1] = meCellId;
+                for(let i = 0; i < input.value.length; i++) {
+                    view[i + 2] = input.value.charCodeAt(i);
+                }
+                socket.send(packet);
+
+                input.value = '';
+            }
+
+            input.onkeyup = (event) => {
+                if (event.keyCode == 13) {
+                    sendButton.click();
+                }
+            }
+        </script>
+    </body>
+</html>
