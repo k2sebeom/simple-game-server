@@ -142,6 +142,9 @@
                 let x = e.clientX - arenaEl.offset().left;
                 let y = e.clientY - arenaEl.offset().top;
 
+                x = Math.max(0, Math.min(x, 490))
+                y = Math.max(0, Math.min(y, 490))
+
                 me.style.left = x + 'px';
                 me.style.top = y + 'px';
                 socket.emit('move', {
