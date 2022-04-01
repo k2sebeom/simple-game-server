@@ -18,10 +18,18 @@ const io = socketIO(server);
 io.on('connection', (socket) => {
     console.log('a user connected');
 
+    socket.on('reqJoin', (info) => {
+        console.log(info);
+        socket.broadcast.emit('join', info);
+    })
+
     socket.on('msg', (msg) => {
-        console.log(msg);
         io.emit('msg', msg);
     });
+
+    socket.on('move', (pos) => {
+        socket.broadcast.emit('set-pos', pos)
+    })
 
     socket.on('disconnect', () => {
         console.log('user disconnected');

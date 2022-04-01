@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <title>Periodic.io</title>
         <script src="/socket.io/socket.io.js"></script>
+        <script src="http://code.jquery.com/jquery-latest.js"></script>
         <style>
             .container {
-                border: solid black;
-                width: 400px;
-                height: 500px;
-                margin-bottom: 20px;
+                display: flex;
+                
+            }
+
+            .container div {
+                margin-right: 10px;
             }
             input {
                 width: 400px;
@@ -15,36 +19,116 @@
             p {
                 margin: 3px;
             }
+
+            #arena {
+                border: solid black 3px;
+                width: 500px;
+                height: 500px;
+            }
+
+            #msg-box {
+                border: solid black;
+                width: 200px;
+                height: 500px;
+                margin-bottom: 20px;
+            }
+
+            .cell {
+                position: relative;
+                width: 10px;
+                height: 10px;
+                background-color:darkblue;
+                top: 250px;
+                left: 250px;
+            }
         </style>
     </head>
     <body>
+        <h1>Periodic.io</h1>
+        <div class="container">
+            <div id="arena">
+                <div class="cell" id="me">
+                    <p></p>
+                </div>
+            </div>
+
+            <div id="msg-box">
+            </div>
+            
+        </div>
         <div>
-            <h2>Messenger</h2>
-            <div class="container">
-            </div>
-            <div>
-                <input type="text" value="">
-                <button id="send">Send</button>
-            </div>
+            <input type="text" value="">
+            <button id="send">Send</button>
         </div>
 
         <script>
-            const socket = io();
-
             const input = document.querySelector('input');
             const sendButton = document.querySelector('#send');
+            const arena = document.querySelector('#arena');
+            const arenaEl = $('#arena');
+            const msgBox = document.querySelector('#msg-box');
+            const me = document.querySelector('#me');
 
-            const msgBox = document.querySelector('.container');
+            let cells = { };
+            const colors = ["tomato", "aqua", "red", "blue", "green", "pink", "black", "purple"];
+
+            let userId = prompt("Please Enter your nickname");
+
+            while (userId.trim().length == 0) {
+                userId = prompt("Please Enter a valid nickname");
+            }
+            me.firstElementChild.innerText = userId;
+            const socket = io();
+
+            const myColor = colors[Math.floor(Math.random() * colors.length)];
+            socket.emit('reqJoin', {
+                id: userId,
+                color: myColor
+            })
+            me.style.backgroundColor = myColor;
+
+            function instantiateCell(info) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.style.top = '250px';
+                cell.style.left = '250px';
+                cell.style.backgroundColor = info.color;
+
+                const nick = document.createElement('p');
+                nick.innerText = info.id;
+                cell.appendChild(nick);
+
+                arena.appendChild(cell);
+                cells[info.id] = cell;
+            }
+
+            socket.on('join', (joinInfo) => {
+                console.log(joinInfo);
+                instantiateCell(joinInfo);
+            })
 
             socket.on('msg', (msg) => {
-                console.log(msg);
                 const line = document.createElement('p');
-                line.innerText = msg;
+                line.innerText = `${msg.sender}: ${msg.text}`;
                 msgBox.appendChild(line);
+            })
+
+            socket.on('set-pos', ({x, y, id, color}) => {
+                const cell = cells[id];
+                if(cell != null) {
+                    cell.style.left = x + 'px';
+                    cell.style.top = y + 'px';
+                }
+                else {
+                    instantiateCell({ id, color });
+                }
             })
             
             sendButton.onclick = () => {
-                socket.emit('msg', input.value);
+                socket.emit('msg', {
+                    sender: userId,
+                    text: input.value
+                });
                 input.value = '';
             }
 
@@ -52,6 +136,17 @@
                 if (event.keyCode == 13) {
                     sendButton.click();
                 }
+            }
+
+            arena.onmousemove = (e) => {
+                let x = e.clientX - arenaEl.offset().left;
+                let y = e.clientY - arenaEl.offset().top;
+
+                me.style.left = x + 'px';
+                me.style.top = y + 'px';
+                socket.emit('move', {
+                    x, y, id: userId, color: myColor
+                });
             }
         </script>
     </body>
