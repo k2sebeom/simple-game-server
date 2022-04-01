@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="/socket.io/socket.io.js"></script>
+        <style>
+            .container {
+                border: solid black;
+                width: 400px;
+                height: 500px;
+                margin-bottom: 20px;
+            }
+            input {
+                width: 400px;
+            }
+            p {
+                margin: 3px;
+            }
+        </style>
+    </head>
+    <body>
+        <div>
+            <h2>Messenger</h2>
+            <div class="container">
+            </div>
+            <div>
+                <input type="text" value="">
+                <button id="send">Send</button>
+            </div>
+        </div>
+
+        <script>
+            const socket = io();
+
+            const input = document.querySelector('input');
+            const sendButton = document.querySelector('#send');
+
+            const msgBox = document.querySelector('.container');
+
+            socket.on('msg', (msg) => {
+                console.log(msg);
+                const line = document.createElement('p');
+                line.innerText = msg;
+                msgBox.appendChild(line);
+            })
+            
+            sendButton.onclick = () => {
+                socket.emit('msg', input.value);
+                input.value = '';
+            }
+
+            input.onkeyup = (event) => {
+                if (event.keyCode == 13) {
+                    sendButton.click();
+                }
+            }
+        </script>
+    </body>
+</html>
