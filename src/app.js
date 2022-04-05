@@ -35,7 +35,7 @@ wss.on('connection', (ws, req) => {
                 const g = msg.readUInt8(2);
                 const b = msg.readUInt8(3);
                 const name = msg.toString('utf8', 4);
-                console.log(`Cell with id: ${name} with color ${r}, ${g}, ${b} joined`);
+                console.log(`Cell with nickname: ${name} with color ${r}, ${g}, ${b} joined`);
 
                 const id = getRandomId();
                 let buf = Buffer.alloc(2);
@@ -47,10 +47,10 @@ wss.on('connection', (ws, req) => {
                 ws.joinData = data;
                 currentCells[id] = ws;
 
-                for (const [id, client] of Object.entries(currentCells)) {
-                    data.writeUInt8(client.id == id ? 2 : 1, 0);
+                for (const [clientId, client] of Object.entries(currentCells)) {
+                    data.writeUInt8(clientId == id ? 2 : 1, 0);
                     client.send(data);
-                    if (client.id != id) {
+                    if (clientId != id) {
                         ws.send(client.joinData);
                     }
                 }
