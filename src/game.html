@@ -109,19 +109,42 @@
                 targetCell.style.top = view[1] + 'px';
             }
 
+            function normalize(vec) {
+                const norm = Math.sqrt(vec.x**2 + vec.y**2);
+                return { x: vec.x / norm, y: vec.y / norm };
+            }
+
             function trackMeCell(me) {
+                let mousePos = { x: 250, y: 250 };
+
                 arena.onmousemove = (e) => {
                     let x = e.clientX - arenaEl.offset().left;
                     let y = e.clientY - arenaEl.offset().top;
 
-                    x = Math.floor(Math.max(0, Math.min(x, 490)));
-                    y = Math.floor(Math.max(0, Math.min(y, 490)));
+                    mousePos.x = Math.floor(Math.max(0, Math.min(x, 490)));
+                    mousePos.y = Math.floor(Math.max(0, Math.min(y, 490)));
+
+                }
+                setInterval(() => {
+                    const current = {
+                        x: parseInt(me.style.left.replace('px', '')),
+                        y: parseInt(me.style.top.replace('px', ''))
+                    };
+
+                    const direction = {
+                        x: mousePos.x - current.x,
+                        y: mousePos.y - current.y
+                    };
+                    const v = normalize(direction);
+                    console.log(v.x ** 2 + v.y ** 2);
+                    const speed = 2;
+                    const x = current.x + Math.floor(v.x * speed);
+                    const y = current.y + Math.floor(v.y * speed);
 
                     me.style.left = x + 'px';
                     me.style.top = y + 'px';
-
                     sendPos(x, y);
-                }
+                }, 17);
             }
 
             function instantiateCell(packet) {
