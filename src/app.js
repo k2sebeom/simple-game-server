@@ -86,6 +86,13 @@ wss.on('connection', (ws, req) => {
             if (id == ws.id) {
                 console.log(`Cell with id: ${id} left`);
                 delete currentCells[id];
+                for (const [clientId, client] of Object.entries(currentCells)) {
+                    let buf = Buffer.alloc(2);
+                    buf.writeUInt8(7, 0);
+                    buf.writeUInt8(id, 1);
+                    client.send(buf);
+                }
+                break;
             }
         }
     })

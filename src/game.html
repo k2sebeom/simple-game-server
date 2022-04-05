@@ -152,9 +152,17 @@
                 cells[cellId] = cell;
             }
 
+            function destroyCell(packet) {
+                let info = new Uint8Array(packet);
+                const cellId = info[1];
+                const targetCell = cells[cellId];
+                targetCell.remove();
+            }
+
             socket.onmessage = async (e) => {
                 let packet = await e.data.arrayBuffer();
                 const view = new Uint8Array(packet);
+                console.log(view);
                 switch(view[0]) {
                     case 1:
                         instantiateCell(packet);
@@ -171,6 +179,9 @@
                         const name = cells[view[1]].firstElementChild.innerText;
                         line.innerText = `${name}: ${msg}`;
                         msgBox.appendChild(line);
+                        break;
+                    case 7:
+                        destroyCell(packet);
                         break;
                 }
             }
