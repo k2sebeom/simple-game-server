@@ -84,9 +84,9 @@ wss.on('connection', (ws, req) => {
     ws.on('close', () => {
         for (const [id, client] of Object.entries(currentCells)) {
             if (id == ws.id) {
+                console.log(`Cell with id: ${id} left`);
                 delete currentCells[id];
             }
         }
-        console.log('Disconnected');
     })
 })
