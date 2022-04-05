@@ -51,6 +51,7 @@ wss.on('connection', (ws, req) => {
                     data.writeUInt8(clientId == id ? 2 : 1, 0);
                     client.send(data);
                     if (clientId != id) {
+                        client.joinData.writeUInt8(1, 0);
                         ws.send(client.joinData);
                     }
                 }
